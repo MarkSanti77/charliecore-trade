@@ -1,0 +1,31 @@
+# charlie_voice.py 🎯 CharlieCore Tactical Voice
+
+def gerar_resposta_tatica(symbol, interval, indicadores):
+    rsi = indicadores.get("rsi", None)
+    obv = indicadores.get("obv", None)
+    supertrend = indicadores.get("supertrend", None)
+
+    status = "🟢 Análise concluída"
+
+    mensagens = [f"{status} - {symbol} [{interval}]"]
+
+    if rsi:
+        if rsi > 70:
+            mensagens.append(f"RSI em sobrecompra ({rsi:.2f}). Tendência de correção.")
+        elif rsi < 30:
+            mensagens.append(f"RSI em sobrevenda ({rsi:.2f}). Sinal de possível entrada.")
+        else:
+            mensagens.append(f"RSI neutro ({rsi:.2f}). Sem gatilhos claros.")
+
+    if obv:
+        mensagens.append(f"OBV atual: {obv:.2f} (interpretação em desenvolvimento)")
+
+    if supertrend:
+        if supertrend > 0:
+            mensagens.append("Supertrend sugere tendência de alta ✅")
+        else:
+            mensagens.append("Supertrend sugere tendência de baixa ⚠️")
+
+    mensagens.append("⚡ Charlie Core em alerta. Aguardando próximo comando.")
+    return "\n".join(mensagens)o
+

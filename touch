@@ -1,0 +1,22 @@
+# discord_bot.py 🚀 CharlieCore Relatório no Discord
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path='config/keys.env')
+
+WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+
+def enviar_relatorio(mensagem):
+    if not WEBHOOK_URL:
+        print("❌ Webhook do Discord não configurado.")
+        return
+    payload = {
+        "content": mensagem
+    }
+    try:
+        response = requests.post(WEBHOOK_URL, json=payload)
+        if response.status_code != 204:
+            print(f"⚠️ Falha ao enviar mensagem Discord: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"❌ Erro ao enviar para Discord: {e}")

@@ -1,0 +1,30 @@
+.
+├── binance_connector.py
+├── charlie_voice.py
+├── charlie_voice.pynnq  
+├── config
+│   └── keys.env
+├── data.py
+├── discord_bot.py
+├── docker-compose.yml
+├── Dockerfile
+├── .env
+├── estrategia.py
+├── estrutura.txt
+├── executor.py
+├── indicators
+│   ├── indicators.py
+│   ├── __init__.py
+│   └── supertrend.py
+├── logs
+│   └── voz_2025-08-02.log
+├── main.py
+├── requirements.txt
+├── sentinel.py
+├── suimonitor.py
+├── test_connector.py
+├── test_indicators.py
+├── touch
+└── voz_charlie.mp3
+
+3 directories, 24 files
