@@ -12,3 +12,4 @@ Este repositório contém o módulo de trading automatizado do projeto **Charlie
 **Uso reservado para fins educacionais.**
 
 
+# trigger build
