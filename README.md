@@ -14,3 +14,4 @@ Este repositório contém o módulo de trading automatizado do projeto **Charlie
 
 # trigger build
 # build docker again
+# push com secrets corrigidos
