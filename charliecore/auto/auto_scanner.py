@@ -77,17 +77,44 @@ def sig_hash(sig):
     base = f"{sig['symbol']}|{sig['side']}|{sig.get('confs','')}|{sig.get('timing','')}"
     return str(abs(hash(base)) % (10**8))
 
+
 def should_send(sig, rules, state, now):
     # thresholds do YAML
     setup = "long_continuacao" if sig["side"]=="long" else "short_continuacao"
     stp   = rules["setups"][setup]
-    coupling_th = stp["btc_coupling"]["threshold"]
-    atr_max     = stp["volatility"]["atr_proximity_max"]
+    coupling_th = float(stp["btc_coupling"]["threshold"])
+    atr_max     = float(stp["volatility"]["atr_proximity_max"])
 
-    # Filtros de qualidade
+    # dbg thresholds
+    try:
+        print(f"dbg_th {sig['symbol']} {sig['side']} coupling_th={coupling_th:.2f} atr_max={atr_max:.2f}")
+    except Exception:
+        pass
+
+    # 1) Qualidade macro
     if not sig.get("trend_ok"):
         return False, "trend_not_ok"
 
+    # 2) Invalidações
+    if sig.get("invalidations", False):
+        return False, "invalidated"
+
+    # 3) Coupling (usar YAML)
+    if float(sig.get("coupling", 0)) < coupling_th:
+        return False, "low_coupling"
+
+    # 4) Proximidade de zona (usar YAML)
+    if float(sig.get("atr_proximity", 99)) > atr_max:
+        return False, "too_far_from_zone"
+
+    # 5) Bollinger (exceção: flat permitido se acoplado e perto da zona)
+    if sig.get("bollinger") != "expanding":
+        if float(sig.get("atr_proximity", 99)) <= atr_max and float(sig.get("coupling",0)) >= 0.80:
+            pass
+        else:
+            return False, "bollinger_not_expanding"
+
+    # 6) OBV (bypass quando macro forte + perto da zona + alto acoplamento)
     if not sig.get("obv_ok"):
         macro_ok = sig.get("trend_ok", False)
         near_zone = float(sig.get("atr_proximity", 99)) <= 0.80
@@ -97,38 +124,8 @@ def should_send(sig, rules, state, now):
         else:
             return False, "obv_not_ok"
 
-    atr_max_yaml = stp["volatility"]["atr_proximity_max"]
-    if sig.get("bollinger") != "expanding":
-        if float(sig.get("atr_proximity", 99)) <= float(atr_max_yaml) and float(sig.get("coupling",0)) >= 0.80:
-            pass
-        else:
-            return False, "bollinger_not_expanding"
-
-    if sig.get("invalidations", False):
-        return False, "invalidated"
-    if sig.get("coupling", 0) < coupling_th:
-        return False, "low_coupling"
-    if sig.get("atr_proximity", 1) > atr_max:
-        return False, "too_far_from_zone"
-
-    # Anti-spam: cooldown por par/direção
-    key = sig_key(sig)
-    last_sent_ts = state.get("last_sent", {}).get(key)
-    COOLDOWN_MIN = int(os.getenv('AUTO_COOLDOWN_MIN','20'))  # minutos (ajuste se quiser)
-    if last_sent_ts:
-        delta_min = (now - dt.datetime.fromisoformat(last_sent_ts)).total_seconds() / 60.0
-        if delta_min < COOLDOWN_MIN:
-            return False, f"cooldown_{int(COOLDOWN_MIN - delta_min)}m"
-
-    # Anti-duplicado: mesma assinatura nas últimas 6h
-    h = sig_hash(sig)
-    last = state.get("last_hash", {}).get(key)
-    if last and last["hash"] == h:
-        ago_min = (now - dt.datetime.fromisoformat(last["ts"])).total_seconds()/60.0
-        if ago_min < 360:  # 6h
-            return False, "duplicate_hash"
-
     return True, "ok"
+
 
 def send_call(sig):
     setup = "long_continuacao" if sig["side"]=="long" else "short_continuacao"

@@ -199,6 +199,17 @@ def get_candidates() -> List[Dict[str,Any]]:
         prox = abs(c15[-1]-e10)/atr5
 
         coup = _corr_abs(_returns(c15), _returns(btc_cl)) if (sym!="BTCUSDT" and btc_cl) else 1.0
+        # guarda para acoplamento degenerado (série "morta" ou dados ruins)
+        try:
+            if coup is None or coup != coup:  # NaN
+                coup = 0.0
+        except Exception:
+            coup = 0.0
+        if coup <= 0.05:
+            # loga e pula ativo para evitar falsos positivos
+            # print(f"dbg COUP_SUSPECT {sym} coup={coup:.2f}")
+            pass
+    
 
         # bypass controlado p/ OBV
         obv_ok_long  = (od=='up')   or (vol=='expanding' and prox<=0.7 and coup>=0.70)
