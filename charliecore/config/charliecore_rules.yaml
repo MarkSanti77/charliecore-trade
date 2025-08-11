@@ -1,0 +1,108 @@
+# CharlieCore Rules - v0.1.0
+rules_version: 0.1.0
+
+assets:
+  universe:
+    - SUIUSDT
+    - SOLUSDT
+    - ETHUSDT
+    - BTCUSDT
+
+setups:
+  short_continuacao:
+    enabled: true
+    trend:
+      tf_fast: "15m"
+      tf_slow: "1h"
+      ma_fast: 5
+      ma_slow: 10
+      require_both_falling: true
+    momentum:
+      obv_min_bars: 3
+      direction: "down"
+    volatility:
+      bollinger:
+        state: "expanding"   # expanding|flat|contracting
+      atr_proximity_max: 0.5 # <= 0.5 x ATR(5m) da zona-chave
+    btc_coupling:
+      threshold: 0.60
+      lookback_candles: 5
+      fallback: "block"      # block|warn
+    timing:
+      rsi_len: 14
+      tactics:
+        pullback_reject:
+            enabled: true
+            short_rsi_min: 55
+            confirm_bars: 1
+        line50:
+            enabled: true
+            confirm_bars: 1
+        hidden_divergence:
+            enabled: true
+            rsi_window: 9
+    invalidations:
+      rsi_extremes:
+        enabled: true
+        short_max: 70
+        long_min: 30
+        consecutive_bars: 1
+      obv_flip_bars: 2
+      btc_viesshift_blocks: true
+    risk:
+      risk_per_trade: 0.0075   # 0.75%
+      tp1_R: 0.5
+      tp2_R: 1.0
+      move_sl_to_be_on_tp1: true
+
+  long_continuacao:
+    enabled: true
+    trend:
+      tf_fast: "15m"
+      tf_slow: "1h"
+      ma_fast: 5
+      ma_slow: 10
+      require_both_rising: true
+    momentum:
+      obv_min_bars: 3
+      direction: "up"
+    volatility:
+      bollinger:
+        state: "expanding"
+      atr_proximity_max: 0.5
+    btc_coupling:
+      threshold: 0.60
+      lookback_candles: 5
+      fallback: "block"
+    timing:
+      rsi_len: 14
+      tactics:
+        pullback_reject:
+            enabled: true
+            long_rsi_max: 45
+            confirm_bars: 1
+        line50:
+            enabled: true
+            confirm_bars: 1
+        hidden_divergence:
+            enabled: true
+            rsi_window: 9
+    invalidations:
+      rsi_extremes:
+        enabled: true
+        short_max: 70
+        long_min: 30
+        consecutive_bars: 1
+      obv_flip_bars: 2
+      btc_viesshift_blocks: true
+    risk:
+      risk_per_trade: 0.0075
+      tp1_R: 0.5
+      tp2_R: 1.0
+      move_sl_to_be_on_tp1: true
+
+alert:
+  format: "[SETUP #{setup} • ANTECIPADA] {symbol}\nDireção: {side}\nZona: {zone}\nConfluências: {confs}\nTiming 5m RSI: {timing}\nRisco por trade: {risk_pct}%\nPlano: SL {sl}, TP1 {tp1}, TP2 {tp2} | Validade: {validity}"
+
+logger:
+  path: "calls_log.csv"
