@@ -1,13 +1,15 @@
-# scanner.py — Varredura tática (context-aware direction)
 from __future__ import annotations
 import os
+import math
+import statistics
 from typing import Tuple, Dict, Any, Optional, List
 from dotenv import load_dotenv
 
+# Carrega .env da raiz do projeto (mesmo diretório do scanner.py)
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"), override=True)
 
-from data import get_market_snapshot
-from estrategia import avaliar_de_snapshot  # fluxo novo (snapshot → estratégia)
+from data import get_market_snapshot, get_klines, ema, obv
+from estrategia import avaliar_de_snapshot  # snapshot → estratégia
 
 # -------------------------------------------------------------
 SNAPSHOT_LIMIT: int = int(os.getenv("SNAPSHOT_LIMIT", "500"))
@@ -104,12 +106,9 @@ async def analisar_ativos(simbolo: Optional[str] = None, intervalo: str = "5m"):
         }
     return None
 
-# --- API p/ CharlieCore Auto ---
-
-# === CharlieCore: get_candidates (real) ===
-import os, math, statistics
-from typing import List, Dict, Any
-from data import get_market_snapshot, get_klines, ema, obv
+# =========================
+# === Helpers / Sinais ====
+# =========================
 
 def _ema_pair(closes, fast=5, slow=10):
     efast = ema(closes, fast); eslow = ema(closes, slow)
@@ -119,33 +118,9 @@ def _trend_bias(closes, fast=5, slow=10):
     efast, eslow = _ema_pair(closes, fast, slow)
     a = efast[-1]; b = eslow[-1]
     if a is None or b is None: return "flat"
-    return "up" if a>b else ("down" if a<b else "flat")
+    return "up" if a > b else ("down" if a < b else "flat")
 
-def _obv_dir(closes, volumes, bars=5, tol=0.25):
-    """
-    Direção do OBV por inclinação:
-    - Usa barras=5 (default)
-    - tol é um fator sobre o passo médio do OBV; se delta >= tol*step_médio => up, <= -tol*step_médio => down
-    """
-    o = obv(closes, volumes)
-    seq = [x for x in o if x is not None][-bars:]
-    if len(seq) < bars:
-        return "flat"
-    delta = seq[-1] - seq[0]
-    # passo médio absoluto entre barras
-    steps = [abs(seq[i+1]-seq[i]) for i in range(len(seq)-1)]
-    step_avg = (sum(steps) / max(1, len(steps))) if steps else 0.0
-    # evita divisão por zero (OBV muito “parado”)
-    step_ref = max(step_avg, 1e-9)
-    if delta >=  tol * step_ref:
-        return "up"
-    if delta <= -tol * step_ref:
-        return "down"
-    return "flat"
-
-def get_candidates() -> List[Dict[str,Any]]:
-
-def _obv_dir_slope(closes, volumes, bars=5, tol=0.15):
+def _obv_dir_slope(closes, volumes, bars=3, tol=0.10):
     """Direção do OBV por inclinação com tolerância dinâmica."""
     o = obv(closes, volumes)
     seq = [x for x in o if x is not None][-bars:]
@@ -159,7 +134,6 @@ def _obv_dir_slope(closes, volumes, bars=5, tol=0.15):
     if delta <= -tol * step_ref: return "down"
     return "flat"
 
-import statistics
 def _vol_expanding(closes, win=20):
     if len(closes) < win*3: return "flat"
     now = statistics.pstdev(closes[-win:])
@@ -175,7 +149,6 @@ def _atr_from_klines(ks, period=5):
     if len(trs)<period: return None
     return sum(trs[-period:])/period
 
-import math
 def _corr_abs(a, b):
     n = min(len(a), len(b))
     if n<10: return 0.0
@@ -192,13 +165,16 @@ def _returns(closes):
         out.append(0.0 if closes[i-1]==0 else (closes[i]/closes[i-1]-1.0))
     return out
 
+# ========================================
+# === CharlieCore: get_candidates (real) ==
+# ========================================
 
-def get_candidates():
+def get_candidates() -> List[Dict[str,Any]]:
     """Varre ativos e retorna lista de candidatos para o auto_scanner."""
     assets = os.getenv("ASSETS","BTCUSDT,ETHUSDT").split(",")
     assets = [a.strip().upper() for a in assets if a.strip()]
     limit  = int(os.getenv("SNAPSHOT_LIMIT","500"))
-    out = []
+    out: List[Dict[str,Any]] = []
 
     # Pré-carrega BTC 15m p/ acoplamento
     btc15 = get_klines("BTCUSDT","15m", min(limit,500)) or []
@@ -247,5 +223,5 @@ def get_candidates():
                 "trend_ok": True, "obv_ok": obv_ok_short, "bollinger": vol,
                 "atr_proximity": prox, "invalidations": False
             })
-    return out
 
+    return out

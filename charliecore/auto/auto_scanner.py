@@ -5,8 +5,32 @@ load_dotenv(override=True)
 import sys, json, time, subprocess, yaml
 import datetime as dt
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATE = os.path.join(ROOT, ".charlie_state.json")
+# === Diretórios base ===
+AUTO_DIR = os.path.dirname(os.path.abspath(__file__))
+CHARLIECORE_DIR = os.path.dirname(AUTO_DIR)
+PROJECT_ROOT = os.path.dirname(CHARLIECORE_DIR)
+
+# === sys.path ===
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+if CHARLIECORE_DIR not in sys.path:
+    sys.path.insert(0, CHARLIECORE_DIR)
+
+# === Caminhos fixos ===
+STATE = os.path.join(PROJECT_ROOT, ".charlie_state.json")
+CFG  = os.path.join(CHARLIECORE_DIR, "config", "charliecore_rules.yaml")
+MAKE = os.path.join(CHARLIECORE_DIR, "core",   "make_call.sh")
+
+import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+import sys, json, time, subprocess, yaml
+import datetime as dt
+
+
+
+
 
 PRE_ALERTS = os.getenv("PRE_ALERTS","true").lower() not in ("0","false","no")
 PRE_WINDOW = int(os.getenv("PRE_ALERT_WINDOW_SEC","900"))
@@ -33,27 +57,17 @@ def almost_ok(sig, rules):
     if float(sig.get("atr_proximity",99)) <= float(atr_max): score+=1
     else: missing.append("atr")
     return (score/total >= PRE_MIN, missing, score/total)
-
-
-
-STATE= os.path.join(ROOT, ".charlie_state.json")
-MAKE = os.path.join(ROOT, "core", "make_call.sh")
-
 def load_yaml(path):
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 def load_state():
-    if not os.path.exists(STATE):
         return {"last_sent": {}, "last_hash": {}}
-    with open(STATE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def save_state(state):
-    tmp = STATE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, STATE)
 
 def sig_key(sig):
     return f"{sig['symbol']}|{sig['side']}"
@@ -107,7 +121,6 @@ def send_call(sig):
 
 def main():
     # tenta importar os candidatos do seu scanner.py
-    sys.path.insert(0, ROOT)
     try:
         from scanner import get_candidates
     except Exception as e:
