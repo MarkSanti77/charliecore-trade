@@ -1,0 +1,227 @@
+# sentinel.py — CharlieCore Sentinel v7.0 (pré-alerta silencioso + confirmação)
+import os, json, time, random, signal, asyncio
+from datetime import datetime
+from typing import Tuple, Dict, Any, Optional, List
+
+from scanner import analisar_ativo
+from discord_bot import enviar_alerta_entrada, enviar_relatorio
+
+# =========================
+# Configuração via ENV
+# =========================
+ASSETS: List[str] = [s.strip().upper() for s in os.getenv(
+    "ASSETS",
+    "BTCUSDT,ETHUSDT,SOLUSDT,PEPEUSDT,DOGEUSDT,BNBUSDT,LINKUSDT,ADAUSDT,MATICUSDT,AVAXUSDT"
+).split(",") if s.strip()]
+
+CONCURRENCY: int = int(os.getenv("MAX_CONCURRENCY", os.getenv("CONCURRENCY", "3")))
+INTERVAL: int = int(os.getenv("INTERVAL_SECONDS", "900"))
+MESSAGE_COOLDOWN: int = int(os.getenv("MESSAGE_COOLDOWN_SECONDS", "600"))
+STATE_PATH: str = os.getenv("CHARLIE_STATE_PATH", os.path.expanduser("~/.charlie_state.json"))
+VERBOSE_DISCORD: bool = os.getenv("VERBOSE_DISCORD", "false").lower() in {"1","true","yes","on"}
+PER_ASSET_JITTER: float = float(os.getenv("PER_ASSET_JITTER", "0.6"))
+
+# Score mínimo para enviar ALERTA final (além do texto apontar LONG/SHORT)
+CONFIDENCE_THRESHOLD: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.60"))
+
+# Pré-alerta: gravar watch_* em memória e só alertar quando evoluir para long/short
+PRE_ALERTS: bool = os.getenv("PRE_ALERTS", "true").lower() in {"1","true","yes","on"}
+PRE_ALERT_WINDOW_SEC: int = int(os.getenv("PRE_ALERT_WINDOW_SEC", "1200"))   # 20 min
+PRE_ALERT_MIN_SCORE: float = float(os.getenv("PRE_ALERT_MIN_SCORE", "0.50")) # 50% para marcar pré
+PRE_ALERT_IMPROVE_DELTA: float = float(os.getenv("PRE_ALERT_IMPROVE_DELTA", "0.07"))  # +7pts vs pré
+REQUIRE_PRE_FOR_ALERT: bool = os.getenv("REQUIRE_PRE_FOR_ALERT", "true").lower() in {"1","true","yes","on"}
+# Se true: só envia alerta final se houve pré-alerta compatível + melhora.
+# Se false: envia alerta final sempre que direction + threshold forem atendidos.
+
+# =========================
+# Estado persistente
+# =========================
+_state_lock = asyncio.Lock()
+_state: Dict[str, Any] = {}
+
+def _load_state() -> None:
+    global _state
+    try:
+        if os.path.exists(STATE_PATH):
+            with open(STATE_PATH, "r") as f:
+                _state = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Falha ao carregar STATE {STATE_PATH}: {e}")
+
+def _save_state() -> None:
+    try:
+        tmp = STATE_PATH + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(_state, f)
+        os.replace(tmp, STATE_PATH)
+    except Exception as e:
+        print(f"⚠️ Falha ao salvar STATE {STATE_PATH}: {e}")
+
+def _get_node(symbol: str) -> Dict[str, Any]:
+    node = _state.get(symbol, {})
+    _state[symbol] = node
+    return node
+
+def _can_send(symbol: str, status: str) -> bool:
+    node = _get_node(symbol)
+    last_status = node.get("last_status")
+    last_ts = node.get("last_sent_ts", 0)
+    now = int(time.time())
+    return status != last_status or (now - last_ts) >= MESSAGE_COOLDOWN
+
+def _mark_sent(symbol: str, status: str) -> None:
+    node = _get_node(symbol)
+    node["last_status"] = status
+    node["last_sent_ts"] = int(time.time())
+    _save_state()
+
+# ============ Pré-alerta (persistente) ============
+def _set_pre_alert(symbol: str, label: str, score: float) -> None:
+    node = _get_node(symbol)
+    node["pre_alert"] = label                 # "watch_long" | "watch_short"
+    node["pre_alert_ts"] = int(time.time())
+    node["pre_alert_score"] = float(score)
+    _save_state()
+
+def _clear_pre_alert(symbol: str) -> None:
+    node = _get_node(symbol)
+    for k in ("pre_alert", "pre_alert_ts", "pre_alert_score"):
+        if k in node:
+            del node[k]
+    _save_state()
+
+def _should_confirm_from_pre(symbol: str, new_label: str, new_score: float) -> bool:
+    """Confirma se havia pré-alerta compatível e houve melhora dentro da janela."""
+    node = _state.get(symbol, {})
+    pa = node.get("pre_alert")
+    ts = node.get("pre_alert_ts")
+    sc = node.get("pre_alert_score")
+    if not pa or ts is None or sc is None:
+        return False
+    # Só dentro da janela
+    if (time.time() - ts) > PRE_ALERT_WINDOW_SEC:
+        return False
+    # watch_long -> long; watch_short -> short; com melhora mínima exigida
+    if pa == "watch_long" and new_label == "long" and (new_score - float(sc)) >= PRE_ALERT_IMPROVE_DELTA:
+        return True
+    if pa == "watch_short" and new_label == "short" and (new_score - float(sc)) >= PRE_ALERT_IMPROVE_DELTA:
+        return True
+    return False
+
+# =========================
+# Worker
+# =========================
+async def _worker(symbol: str, sem: asyncio.Semaphore) -> Tuple[Optional[str], Dict[str, Any], Optional[Exception]]:
+    # pequeno jitter por ativo para suavizar rajadas e 429
+    await asyncio.sleep(random.random() * PER_ASSET_JITTER)
+
+    async with sem:
+        try:
+            # analisar_ativo é síncrona (requests) → executar em thread
+            msg, ctx = await asyncio.to_thread(analisar_ativo, symbol)
+
+            stages = ctx.get("stages", {})
+            status_5m = (stages.get("5m") or {}).get("categoria", "n/a")
+
+            lp = int(ctx.get("pct_long", 0) or 0)
+            sp = int(ctx.get("pct_short", 0) or 0)
+            conf = float(ctx.get("confidence_score", 0.0))
+            direction = ctx.get("direction")           # "LONG" | "SHORT" | None
+            authorized = bool(ctx.get("authorized"))   # texto + threshold pré-calculado
+
+            # status final padronizado para cooldown:
+            hi_status = ("long" if direction == "LONG"
+                         else "short" if direction == "SHORT"
+                         else status_5m)
+
+            print(f"🧐 {symbol} → {status_5m} | dir={direction} | conf={conf:.2f} | L={lp}% S={sp}%")
+
+            # 1) Registrar pré-alerta silencioso quando watch_* com score mínimo
+            if PRE_ALERTS and hi_status in {"watch_long", "watch_short"} and conf >= PRE_ALERT_MIN_SCORE:
+                _set_pre_alert(symbol, hi_status, conf)
+
+            # 2) Enviar alerta somente quando virar long/short com condições:
+            #    - autorizado (texto + threshold global)
+            #    - (opcional) confirmar que evoluiu a partir de pré-alerta com melhora
+            is_final = hi_status in {"long", "short"}
+            need_pre_ok = (not REQUIRE_PRE_FOR_ALERT) or _should_confirm_from_pre(symbol, hi_status, conf)
+
+            if is_final and authorized and conf >= CONFIDENCE_THRESHOLD and need_pre_ok and _can_send(symbol, hi_status):
+                enviar_alerta_entrada(
+                    f"**{symbol}** — {hi_status.upper()}\n{msg}\n🎯 Conf: {conf:.2f} | L={lp}% | S={sp}%",
+                    confidence_score=conf,
+                )
+                async with _state_lock:
+                    _mark_sent(symbol, hi_status)
+                    _clear_pre_alert(symbol)
+
+            # 3) Logs passivos/relatórios se habilitados (não spam)
+            elif VERBOSE_DISCORD and _can_send(symbol, hi_status):
+                enviar_relatorio(f"🛰️ {symbol} — {status_5m}\n{msg}\n📊 Conf: {conf:.2f} | L={lp}% | S={sp}%")
+                async with _state_lock:
+                    _mark_sent(symbol, hi_status)
+
+            return msg, ctx, None
+
+        except Exception as e:
+            print(f"❌ Worker erro {symbol}: {e}")
+            return None, {"symbol": symbol, "error": str(e)}, e
+
+# =========================
+# Loop principal + sinais
+# =========================
+_stop_flag = False
+
+def _graceful_stop(*_):
+    global _stop_flag
+    _stop_flag = True
+    print("🛑 Execução interrompida — finalizando após a rodada atual.")
+
+async def sentinela():
+    _load_state()
+
+    print("🛰️ CharlieCore Sentinel iniciado.")
+    print(f"⏱️ Intervalo: {INTERVAL}s | 🎯 Ativos: {', '.join(ASSETS)} | ⚙️ Conc: {CONCURRENCY}")
+    print(f"🧪 Verbose Discord: {VERBOSE_DISCORD} | Cooldown: {MESSAGE_COOLDOWN}s | Threshold: {CONFIDENCE_THRESHOLD:.2f}")
+    if PRE_ALERTS:
+        print(f"🔎 Pré-alerta: ON | Janela={PRE_ALERT_WINDOW_SEC}s | MinScore={PRE_ALERT_MIN_SCORE:.2f} | Δ+={PRE_ALERT_IMPROVE_DELTA:.2f} | RequirePre={REQUIRE_PRE_FOR_ALERT}")
+
+    while not _stop_flag:
+        try:
+            print(f"📡 Nova varredura — {datetime.utcnow().isoformat(timespec='seconds')}")
+            sem = asyncio.Semaphore(CONCURRENCY)
+            tasks = [asyncio.create_task(__worker) for __worker in
+                     [lambda s=symbol: _worker(s, sem) for symbol in ASSETS]]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            calls_ok = 0
+            errors = 0
+            for res in results:
+                if isinstance(res, Exception):
+                    errors += 1
+                    continue
+                _msg, ctx, err = res  # type: ignore[assignment]
+                if err:
+                    errors += 1
+                elif isinstance(ctx, dict) and ctx.get("authorized"):
+                    # só conta as autorizadas final (direction presente + threshold)
+                    if ctx.get("direction") in {"LONG", "SHORT"} and float(ctx.get("confidence_score", 0.0)) >= CONFIDENCE_THRESHOLD:
+                        calls_ok += 1
+
+            print(f"📊 Calls autorizadas nesta rodada: {calls_ok} | ❗Erros: {errors}")
+
+        except Exception as e:
+            print(f"💥 Falha no loop principal: {e}")
+
+        # espera fina (permite parada limpa)
+        for _ in range(INTERVAL):
+            if _stop_flag:
+                break
+            await asyncio.sleep(1)
+
+    print("✅ Sentinel finalizado com segurança.")
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, _graceful_stop)
+    signal.signal(signal.SIGTERM, _graceful_stop)
+    asyncio.run(sentinela())

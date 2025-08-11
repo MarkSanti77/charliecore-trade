@@ -1,0 +1,178 @@
+k# sentinel.py — CharlieCore Sentinel v6.1 (eficiência + robustez)
+import os
+import json
+import time
+import random
+import signal
+import asyncio
+from datetime import datetime
+from typing import Tuple, Dict, Any, Optional, List
+
+from scanner import analisar_ativo
+from discord_bot import enviar_alerta_entrada, enviar_relatorio
+
+# =======================
+# Config (.env)
+# =======================
+ASSETS: List[str] = [
+    s.strip().upper()
+    for s in os.getenv(
+        "ASSETS",
+        "BTCUSDT,ETHUSDT,SOLUSDT,PEPEUSDT,DOGEUSDT,BNBUSDT,LINKUSDT,ADAUSDT,MATICUSDT,AVAXUSDT",
+    ).split(",")
+    if s.strip()
+]
+CONCURRENCY: int = int(os.getenv("MAX_CONCURRENCY", os.getenv("CONCURRENCY", "3")))
+INTERVAL: int = int(os.getenv("INTERVAL_SECONDS", "900"))
+MESSAGE_COOLDOWN: int = int(os.getenv("MESSAGE_COOLDOWN_SECONDS", "300"))
+STATE_PATH: str = os.getenv("CHARLIE_STATE_PATH", os.path.expanduser("~/.charlie_state.json"))
+VERBOSE_DISCORD: bool = os.getenv("VERBOSE_DISCORD", "false").lower() in {"1", "true", "yes", "on"}
+PER_ASSET_JITTER: float = float(os.getenv("PER_ASSET_JITTER", "0.6"))  # 0.0–1.5s por ativo
+CONFIDENCE_THRESHOLD: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.60"))
+
+# =======================
+# Estado persistente
+# =======================
+_state_lock = asyncio.Lock()
+_state: Dict[str, Any] = {
+    # "SYMBOL": {"last_status": "no_trade|watch_long|long|...", "last_sent_ts": epoch_seconds}
+}
+
+def _load_state() -> None:
+    global _state
+    try:
+        if os.path.exists(STATE_PATH):
+            with open(STATE_PATH, "r") as f:
+                _state = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Falha ao carregar STATE {STATE_PATH}: {e}")
+
+def _save_state() -> None:
+    try:
+        tmp = STATE_PATH + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(_state, f)
+        os.replace(tmp, STATE_PATH)
+    except Exception as e:
+        print(f"⚠️ Falha ao salvar STATE {STATE_PATH}: {e}")
+
+def _can_send(symbol: str, status: str) -> bool:
+    """Evita spam: só envia se status mudou ou cooldown passou."""
+    node = _state.get(symbol, {})
+    last_status = node.get("last_status")
+    last_ts = node.get("last_sent_ts", 0)
+    now = int(time.time())
+    if status != last_status:
+        return True
+    return (now - last_ts) >= MESSAGE_COOLDOWN
+
+def _mark_sent(symbol: str, status: str) -> None:
+    node = _state.get(symbol, {})
+    node["last_status"] = status
+    node["last_sent_ts"] = int(time.time())
+    _state[symbol] = node
+    _save_state()
+
+# =======================
+# Worker
+# =======================
+async def _worker(symbol: str, sem: asyncio.Semaphore) -> Tuple[Optional[str], Dict[str, Any], Optional[Exception]]:
+    # jitter pequeno para evitar rajada simultânea nas APIs
+    await asyncio.sleep(random.random() * PER_ASSET_JITTER)
+
+    async with sem:
+        try:
+            # analisar_ativo é síncrona → roda em thread
+            msg, ctx = await asyncio.to_thread(analisar_ativo, symbol)
+
+            stages = ctx.get("stages", {})
+            status_5m = (stages.get("5m") or {}).get("categoria", "n/a")
+            lp = ctx.get("pct_long", 0)
+            sp = ctx.get("pct_short", 0)
+            conf = float(ctx.get("confidence_score", 0.0))
+            direction = ctx.get("direction")
+            authorized = bool(ctx.get("authorized"))
+
+            print(f"🧐 {symbol} → {status_5m} | dir={direction} | conf={conf:.2f} | L={lp}% S={sp}%")
+
+            # status "alto nível" para suprimir repetição mesmo quando verbose
+            hi_status = (
+                "long" if direction == "LONG" else
+                "short" if direction == "SHORT" else
+                status_5m
+            )
+
+            # Envio
+            if authorized and conf >= CONFIDENCE_THRESHOLD and _can_send(symbol, hi_status):
+                enviar_alerta_entrada(
+                    f"**{symbol}** — {direction}\n{msg}\n🎯 Conf: {conf:.2f} | L={lp}% | S={sp}%",
+                    confidence_score=conf,
+                )
+                async with _state_lock:
+                    _mark_sent(symbol, hi_status)
+            elif VERBOSE_DISCORD and _can_send(symbol, hi_status):
+                enviar_relatorio(
+                    f"🛰️ {symbol} — {status_5m}\n{msg}\n📊 Conf: {conf:.2f} | L={lp}% | S={sp}%"
+                )
+                async with _state_lock:
+                    _mark_sent(symbol, hi_status)
+
+            return msg, ctx, None
+
+        except Exception as e:
+            print(f"❌ Worker erro {symbol}: {e}")
+            return None, {"symbol": symbol, "error": str(e)}, e
+
+# =======================
+# Loop principal
+# =======================
+_stop_flag = False
+def _graceful_stop(*_args):
+    global _stop_flag
+    _stop_flag = True
+    print("🛑 Execução interrompida — finalizando após a rodada atual.")
+
+async def sentinela():
+    _load_state()
+    print("🛰️ CharlieCore Sentinel iniciado.")
+    print(f"⏱️ Intervalo: {INTERVAL}s | 🎯 Ativos: {', '.join(ASSETS)} | ⚙️ Conc: {CONCURRENCY}")
+    print(f"🧪 Verbose Discord: {VERBOSE_DISCORD} | Cooldown: {MESSAGE_COOLDOWN}s | Threshold: {CONFIDENCE_THRESHOLD:.2f}")
+
+    while not _stop_flag:
+        try:
+            print(f"📡 Nova varredura — {datetime.utcnow().isoformat(timespec='seconds')}")
+            sem = asyncio.Semaphore(CONCURRENCY)
+
+            tasks = [asyncio.create_task(_worker(sym, sem)) for sym in ASSETS]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            calls_ok = 0
+            errors = 0
+            for res in results:
+                if isinstance(res, Exception):
+                    errors += 1
+                    continue
+                _msg, ctx, err = res  # type: ignore
+                if err:
+                    errors += 1
+                elif isinstance(ctx, dict) and ctx.get("authorized"):
+                    calls_ok += 1
+
+            print(f"📊 Calls autorizadas nesta rodada: {calls_ok} | ❗Erros: {errors}")
+
+        except Exception as e:
+            print(f"💥 Falha no loop principal: {e}")
+
+        # espera entre rodadas (suporta Ctrl+C durante o sleep)
+        for _ in range(INTERVAL):
+            if _stop_flag:
+                break
+            await asyncio.sleep(1)
+
+    print("✅ Sentinel finalizado com segurança.")
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, _graceful_stop)
+    signal.signal(signal.SIGTERM, _graceful_stop)
+    asyncio.run(sentinela())
+

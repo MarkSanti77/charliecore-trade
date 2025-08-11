@@ -1,0 +1,434 @@
+nohup: ignoring input
+
+🚨 Nova varredura às 19:29:58
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.
+✅ Parte 1/1 enviada com sucesso.
+
+🚨 Nova varredura às 19:40:11
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.
+✅ Parte 1/1 enviada com sucesso.
+
+🚨 Nova varredura às 19:50:22
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.
+✅ Parte 1/1 enviada com sucesso.
+
+🚨 Nova varredura às 20:00:32
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.
+✅ Parte 1/1 enviada com sucesso.
+
+🚨 Nova varredura às 20:10:43
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.
+✅ Parte 1/1 enviada com sucesso.
+
+🚨 Nova varredura às 20:20:53
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.
+✅ Parte 1/1 enviada com sucesso.
+
+🚨 Nova varredura às 20:31:04
+
+🎙️ Fala requisitada: "Suprema varredura de ativos iniciada. CharlieCore em modo avançado."
+⚙️ Emoção: neutra | Voice ID: x3mAOLD9WzlmrFCwA1S3
+🔐 ElevenLabs API: ✅ OK
+📡 Webhook TTS: ✅ OK
+❌ Erro na geração/envio ElevenLabs: 401 Unauthorized: {"detail":{"status":"quota_exceeded","message":"This request exceeds your quota of 30000. You have 11 credits remaining, while 67 credits are required for this request."}}
+🧩 Ativando fallback local com pyttsx3...
+⚠️ Erro no fallback local: SetVoiceByName failed with unknown return code -1 for voice: gmw/en
+============================================================
+📱 CharlieCore Sentinel Supreme Report Iniciado
+============================================================
+
+📈 Tendência macro do BTC (1D): Baixa 🔴
+
+🧐 Ativo Monitorado: BTCUSDT
+   ⚠️ Dados insuficientes para BTCUSDT em 15m.
+   ⚠️ Dados insuficientes para BTCUSDT em 1h.
+   ⚠️ Dados insuficientes para BTCUSDT em 4h.
+   ⚠️ Dados insuficientes para BTCUSDT em 5m.
+
+🧐 Ativo Monitorado: ETHUSDT
+   ⚠️ Dados insuficientes para ETHUSDT em 15m.
+   ⚠️ Dados insuficientes para ETHUSDT em 1h.
+   ⚠️ Dados insuficientes para ETHUSDT em 4h.
+   ⚠️ Dados insuficientes para ETHUSDT em 5m.
+
+🧐 Ativo Monitorado: SUIUSDT
+   ⚠️ Dados insuficientes para SUIUSDT em 15m.
+   ⚠️ Dados insuficientes para SUIUSDT em 1h.
+   ⚠️ Dados insuficientes para SUIUSDT em 4h.
+   ⚠️ Dados insuficientes para SUIUSDT em 5m.
+
+🧐 Ativo Monitorado: XRPUSDT
+   ⚠️ Dados insuficientes para XRPUSDT em 15m.
+   ⚠️ Dados insuficientes para XRPUSDT em 1h.
+   ⚠️ Dados insuficientes para XRPUSDT em 4h.
+   ⚠️ Dados insuficientes para XRPUSDT em 5m.
+
+🧐 Ativo Monitorado: DOGEUSDT
+   ⚠️ Dados insuficientes para DOGEUSDT em 15m.
+   ⚠️ Dados insuficientes para DOGEUSDT em 1h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 4h.
+   ⚠️ Dados insuficientes para DOGEUSDT em 5m.
+
+🧐 Ativo Monitorado: PEPEUSDT
+   ⚠️ Dados insuficientes para PEPEUSDT em 15m.
+   ⚠️ Dados insuficientes para PEPEUSDT em 1h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 4h.
+   ⚠️ Dados insuficientes para PEPEUSDT em 5m.
+
+🧐 Ativo Monitorado: SOLUSDT
+   ⚠️ Dados insuficientes para SOLUSDT em 15m.
+   ⚠️ Dados insuficientes para SOLUSDT em 1h.
+   ⚠️ Dados insuficientes para SOLUSDT em 4h.
+   ⚠️ Dados insuficientes para SOLUSDT em 5m.
+
+📊 Total de calls detectadas nesta rodada: 0
+
+⚡ Aguardando próxima rodada.

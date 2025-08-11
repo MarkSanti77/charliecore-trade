@@ -1,17 +1,11 @@
-version: '3.8'
-
 services:
   charliecore-sentinel:
     container_name: charliecore-sentinel
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: charliecore-trade:latest
+    image: marksanti/charliecore:latest
     restart: unless-stopped
     env_file:
       - config/keys.env
     volumes:
-      - .:/app
       - ./logs:/app/logs
       - ./indicators:/app/indicators
     working_dir: /app
@@ -32,8 +26,6 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: >
-      --interval 300
-      --notification-url=discord://PXpwl6uE7XfXUbZtxhlhpg9EDi9pzY4R5_JH2_DqVLZjds41aWlKxb4C8tOwWIHtzFTj@1396935848498430002
+    command: "--interval 86400 --cleanup --notification-url=discord://PXpwl6uE7XfXUbZtxhlhpg9EDi9pzY4R5_JH2_DqVLZjds41aWlKxb4C8tOwWIHtzFTj@1396935848498430002"
     labels:
       com.centurylinklabs.watchtower.enable: "false"

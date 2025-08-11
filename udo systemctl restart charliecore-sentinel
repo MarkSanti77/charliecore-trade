@@ -1,0 +1,11 @@
+[0;1;32m●[0m charliecore-sentinel.service - CharlieCore Sentinel (Discord alerts)
+     Loaded: loaded (/etc/systemd/system/charliecore-sentinel.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Sat 2025-08-09 12:55:00 UTC; 17ms ago
+   Main PID: 816002 (python3)
+      Tasks: 1 (limit: 9523)
+     Memory: 1.9M
+        CPU: 9ms
+     CGroup: /system.slice/charliecore-sentinel.service
+             └─816002 /usr/bin/python3 /root/charliecore-trade/sentinel.py
+
+Aug 09 12:55:00 srv486532 systemd[1]: Started CharlieCore Sentinel (Discord alerts).

@@ -1,0 +1,42 @@
+# sentinel.py — trecho central sugerido
+
+import os, asyncio
+from scanner import analisar_ativo
+from discord_bot import enviar_alerta_entrada
+
+ASSETS = os.getenv("ASSETS", "BTCUSDT,ETHUSDT,SOLUSDT,PEPEUSDT,DOGEUSDT").split(",")
+CONCURRENCY = int(os.getenv("CONCURRENCY", "3"))
+INTERVAL = int(os.getenv("INTERVAL_SECONDS", "900"))
+
+async def _worker(symbol: str, sem: asyncio.Semaphore):
+    async with sem:
+        try:
+            # mover CPU/IO bloqueante p/ threadpool (data.py usa requests)
+            msg, ctx = await asyncio.to_thread(analisar_ativo, symbol.strip().upper())
+            # seu pipeline de envio/decisão:
+            if ctx.get("direction") and ctx.get("meets_threshold"):
+                enviar_alerta_entrada(msg, confidence_score=ctx.get("confidence_score", 0.0))
+            return msg, ctx, None
+        except Exception as e:
+            return None, {"symbol": symbol, "error": str(e)}, e
+
+async def sentinela():
+    print("🛰️ CharlieCore Sentinel iniciado.")
+    print(f"⏱️ Intervalo: {INTERVAL}s | 🎯 Ativos: {', '.join(ASSETS)} | ⚙️ Conc: {CONCURRENCY}")
+
+    while True:
+        print(f"📡 Nova varredura — {asyncio.get_running_loop().time()}")
+        sem = asyncio.Semaphore(CONCURRENCY)  # CRIAR SEMÁFORO DENTRO DO LOOP ATUAL
+        tasks = [asyncio.create_task(_worker(sym, sem)) for sym in ASSETS]
+
+        results = await asyncio.gather(*tasks, return_exceptions=False)
+
+        # exemplo de métrica
+        calls_ok = sum(1 for _, ctx, _ in results if ctx.get("authorized"))
+        print(f"📊 Calls autorizadas nesta rodada: {calls_ok}")
+
+        await asyncio.sleep(INTERVAL)
+
+if __name__ == "__main__":
+    # Não use múltiplos loops; um único asyncio.run coordena tudo
+    asyncio.run(sentinela())

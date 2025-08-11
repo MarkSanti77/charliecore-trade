@@ -1,0 +1,93 @@
+# scanner.py — Varredura tática (refinado, compatível)
+from __future__ import annotations
+import os
+from typing import Tuple, Dict, Any, Optional, List
+
+from data import get_market_snapshot
+from estrategia import avaliar_de_snapshot  # fluxo novo (snapshot → estratégia)
+
+# -------------------------------------------------------------
+SNAPSHOT_LIMIT: int = int(os.getenv("SNAPSHOT_LIMIT", "500"))
+DEFAULT_INTERVALS: List[str] = ["4h", "1h", "15m", "5m"]
+CONFIDENCE_THRESHOLD: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.75"))
+# -------------------------------------------------------------
+
+
+def _infer_direction_from_msg(msg: str) -> Optional[str]:
+    """Heurística compatível com o fluxo antigo, baseada no texto final."""
+    t = msg.lower()
+    if "entrada long autorizada" in t or "entrada **long**" in t:
+        return "LONG"
+    if "entrada short autorizada" in t or "entrada **short**" in t:
+        return "SHORT"
+    return None
+
+
+def analisar_ativo(symbol: Optional[str] = None,
+                   intervals: Optional[List[str]] = None) -> Tuple[str, Dict[str, Any]]:
+    """
+    Executa análise consolidada usando snapshot multi-timeframe.
+    Retorna (mensagem_formatada, contexto_dict) prontos para o Discord.
+
+    :param symbol: par a ser analisado (ex.: BTCUSDT). Se None, usa SYMBOL do .env.
+    :param intervals: lista de timeframes. Se None, usa DEFAULT_INTERVALS.
+    """
+    symbol = (symbol or os.getenv("SYMBOL", "BTCUSDT")).upper()
+    intervals = intervals or DEFAULT_INTERVALS
+
+    try:
+        snap = get_market_snapshot(symbol, intervals, limit=SNAPSHOT_LIMIT)
+        msg, ctx = avaliar_de_snapshot(snap)
+    except Exception as e:
+        # Fallback de erro controlado (não levanta para não quebrar o bot)
+        msg = f"⚠️ Erro ao analisar {symbol}: {e}"
+        ctx = {"symbol": symbol, "error": str(e), "confidence_score": 0.0, "stages": {}}
+
+    # enriquecer contexto
+    ctx["symbol"] = symbol
+    stages: Dict[str, Any] = ctx.get("stages", {}) or {}
+    s5: Dict[str, Any] = stages.get("5m", {}) or {}
+
+    # disponibilizar pct_long/pct_short no topo do contexto
+    pct_long = int(s5.get("pct_long", ctx.get("pct_long", 0)) or 0)
+    pct_short = int(s5.get("pct_short", ctx.get("pct_short", 0)) or 0)
+    ctx["pct_long"] = pct_long
+    ctx["pct_short"] = pct_short
+
+    # garantir que sempre exista confidence_score (fallback = max long/short)
+    if "confidence_score" not in ctx or ctx.get("confidence_score") is None:
+        ctx["confidence_score"] = max(pct_long, pct_short) / 100.0
+
+    # direção por texto
+    direction = _infer_direction_from_msg(msg)
+
+    # Fallback de direção por alinhamento entre estágios (quando o texto ainda não autoriza)
+    if not direction:
+        cat4h = (stages.get("4h") or {}).get("categoria")
+        cat1h = (stages.get("1h") or {}).get("categoria")
+        cat15 = (stages.get("15m") or {}).get("categoria")
+        cat5  = (stages.get("5m") or {}).get("categoria")
+
+        long_align  = (cat4h == "tendencia_alta"  and cat1h in {"tendencia_alta", "tendencia_intermediaria"}
+                       and cat15 in {"tendencia_alta", "tendencia_intermediaria"} and cat5 in {"watch_long", "long"})
+        short_align = (cat4h == "tendencia_baixa" and cat1h in {"tendencia_baixa", "tendencia_intermediaria"}
+                       and cat15 in {"tendencia_baixa", "tendencia_intermediaria"} and cat5 in {"watch_short", "short"})
+
+        if long_align:
+            direction = "LONG"
+        elif short_align:
+            direction = "SHORT"
+
+    # flags finais
+    ctx["direction"] = direction
+    ctx["meets_threshold"] = float(ctx.get("confidence_score", 0.0)) >= CONFIDENCE_THRESHOLD
+    ctx["authorized"] = bool(direction) and ctx["meets_threshold"]
+
+    return msg, ctx
+
+
+# ===== Compatibilidade com fluxo antigo (async) =====
+async def analisar_ativos(simbolo: Optional[str] = None, intervalo: str = "5m"):
+    """
+    Compat: mantém a assinatura usada pelo sentinel antigo.
+    Agora usa o fluxo novo e retorna dict apenas quando houver direç

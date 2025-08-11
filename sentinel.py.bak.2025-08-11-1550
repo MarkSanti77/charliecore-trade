@@ -1,0 +1,48 @@
+import os
+import asyncio
+from datetime import datetime
+from typing import Tuple, Dict, Any
+
+from scanner import analisar_ativo
+from discord_bot import enviar_alerta_entrada
+
+ASSETS = [s.strip().upper() for s in os.getenv("ASSETS", "BTCUSDT,ETHUSDT,SOLUSDT,PEPEUSDT,DOGEUSDT").split(",") if s.strip()]
+CONCURRENCY = int(os.getenv("CONCURRENCY", "3"))
+INTERVAL = int(os.getenv("INTERVAL_SECONDS", "900"))
+
+async def _worker(symbol: str, sem: asyncio.Semaphore) -> Tuple[str | None, Dict[str, Any], Exception | None]:
+    async with sem:
+        try:
+            # analisar_ativo é síncrona e faz requests → rodar em thread para não travar o loop
+            msg, ctx = await asyncio.to_thread(analisar_ativo, symbol)
+            status_5m = (ctx.get("stages", {}).get("5m", {}) or {}).get("categoria", "n/a")
+            print(f"🧐 {symbol} → {status_5m}")
+
+            # Envia alerta somente quando autorizado (direction + threshold)
+            if ctx.get("authorized"):
+                enviar_alerta_entrada(msg, confidence_score=float(ctx.get("confidence_score", 0.0)))
+
+            return msg, ctx, None
+        except Exception as e:
+            return None, {"symbol": symbol, "error": str(e)}, e
+
+async def sentinela():
+    print("🛰️ CharlieCore Sentinel iniciado.")
+    print(f"⏱️ Intervalo: {INTERVAL}s | 🎯 Ativos: {', '.join(ASSETS)} | ⚙️ Conc: {CONCURRENCY}")
+
+    while True:
+        print(f"📡 Nova varredura — {datetime.utcnow().isoformat(timespec='seconds')}")
+        # IMPORTANTE: criar o semáforo dentro do loop atual
+        sem = asyncio.Semaphore(CONCURRENCY)
+
+        tasks = [asyncio.create_task(_worker(sym, sem)) for sym in ASSETS]
+        results = await asyncio.gather(*tasks, return_exceptions=False)
+
+        calls_ok = sum(1 for _, ctx, _ in results if isinstance(ctx, dict) and ctx.get("authorized"))
+        print(f"📊 Calls autorizadas nesta rodada: {calls_ok}")
+
+        await asyncio.sleep(INTERVAL)
+
+if __name__ == "__main__":
+    # Um único event loop para todo o processo
+    asyncio.run(sentinela())

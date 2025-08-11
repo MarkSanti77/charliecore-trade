@@ -1,70 +1,97 @@
-# charlie_voice.py 🎙️ CharlieCore Emotional Voice v4.1
+# charlie_voice.py 🎙️ CharlieCore v6.2 — Voz oficial com fallback local + envio ao Discord
+
 import os
 import requests
-import uuid
-import time
-from voice_logger import log_fala  # ⬅️ Logger ativado
+import pyttsx3
+from dotenv import load_dotenv
 
-VOZ_PADRAO = "onyx"
-WEBHOOK_AUDIO = os.getenv("DISCORD_AUDIO_WEBHOOK_URL")
-PASTA_AUDIO = "audios"
+load_dotenv()
 
-EMOCOES = {
-    "alegre": {"stability": 0.40, "similarity": 0.85},
-    "triste": {"stability": 0.80, "similarity": 0.80},
-    "neutra": {"stability": 0.65, "similarity": 0.75},
-    "confiante": {"stability": 0.30, "similarity": 0.90},
-    "preocupada": {"stability": 0.70, "similarity": 0.70},
-    "tensa": {"stability": 0.90, "similarity": 0.65},
-}
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+DISCORD_WEBHOOK_TTS = os.getenv("DISCORD_WEBHOOK_TTS")
+VOICE_ID = os.getenv("VOICE_ID", "x3mAOLD9WzlmrFCwA1S3")  # 🇧🇷 Voz ElevenLabs PT-BR padrão
 
 def falar(texto, emocao="neutra"):
-    print(f"\n⚙️ Gerando fala com emoção: {emocao}")
-    
-    os.makedirs(PASTA_AUDIO, exist_ok=True)
-    id_audio = str(uuid.uuid4())
-    caminho_audio = os.path.join(PASTA_AUDIO, f"{id_audio}.mp3")
-    url_api = f"https://api.elevenlabs.io/v1/text-to-speech/{VOZ_PADRAO}"
+    print(f"\n🎙️ Fala requisitada: \"{texto}\"")
+    print(f"⚙️ Emoção: {emocao} | Voice ID: {VOICE_ID}")
+    print(f"🔐 ElevenLabs API: {'✅ OK' if ELEVENLABS_API_KEY else '❌ Faltando'}")
+    print(f"📡 Webhook TTS: {'✅ OK' if DISCORD_WEBHOOK_TTS else '❌ Faltando'}")
 
-    payload = {
-        "text": texto,
-        "model_id": "eleven_monolingual_v1",
-        "voice_settings": EMOCOES.get(emocao, EMOCOES["neutra"])
-    }
+    if ELEVENLABS_API_KEY:
+        try:
+            audio_path = gerar_audio_elevenlabs(texto)
+            if audio_path:
+                enviar_audio_para_discord(audio_path)
+                return
+        except Exception as e:
+            print(f"❌ Erro na geração/envio ElevenLabs: {e}")
 
+    print("🧩 Ativando fallback local com pyttsx3...")
+    fallback_local(texto)
+
+def gerar_audio_elevenlabs(texto):
+    """
+    Conecta com a API ElevenLabs para gerar o áudio com voz sintetizada.
+    """
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
     headers = {
-        "xi-api-key": os.getenv("ELEVENLABS_API_KEY"),
+        "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json"
     }
+    body = {
+        "text": texto,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "stability": 0.4,
+            "similarity_boost": 0.8
+        }
+    }
+
+    response = requests.post(url, json=body, headers=headers)
+
+    if response.status_code == 200:
+        audio_path = "/tmp/charlie_voice.mp3"
+        with open(audio_path, "wb") as f:
+            f.write(response.content)
+        print(f"✅ Áudio gerado: {audio_path}")
+        return audio_path
+    else:
+        raise Exception(f"{response.status_code} {response.reason}: {response.text}")
+
+def enviar_audio_para_discord(audio_path):
+    """
+    Envia o arquivo de áudio gerado para o canal configurado via webhook no Discord.
+    """
+    if not DISCORD_WEBHOOK_TTS:
+        print("⚠️ Webhook do Discord para TTS não está configurado.")
+        return
+
+    print(f"📡 Enviando áudio para Discord...")
 
     try:
-        response = requests.post(url_api, json=payload, headers=headers)
-        response.raise_for_status()
+        with open(audio_path, "rb") as f:
+            response = requests.post(
+                DISCORD_WEBHOOK_TTS,
+                files={"file": ("charlie_voice.mp3", f, "audio/mpeg")}
+            )
 
-        with open(caminho_audio, "wb") as f:
-            f.write(response.content)
-
-        print("✅ Áudio gerado com sucesso.")
-
-        if WEBHOOK_AUDIO:
-            with open(caminho_audio, "rb") as f:
-                file = {"file": (f"{id_audio}.mp3", f)}
-                r = requests.post(WEBHOOK_AUDIO, files=file)
-                if r.status_code == 200:
-                    print("📡 Áudio enviado ao Discord com sucesso.")
-                else:
-                    print(f"⚠️ Falha ao enviar áudio ao Discord. Código: {r.status_code}")
+        if response.status_code in [200, 204]:
+            print("✅ Áudio enviado com sucesso ao Discord.")
         else:
-            print("⚠️ WEBHOOK_AUDIO não configurado. Áudio salvo localmente.")
-
-        # ✅ Log da fala
-        log_fala(texto, emocao)
-
+            print(f"❌ Falha no envio. Código HTTP: {response.status_code} | {response.text}")
     except Exception as e:
-        print(f"❌ Erro ao gerar ou enviar áudio: {e}")
-        print("🎧 Emitindo fallback sonoro padrão...")
-        fallback = os.path.join(PASTA_AUDIO, "falha.mp3")
-        if os.path.exists(fallback):
-            os.system(f"mpg123 {fallback}")
-        else:
-            print("⚠️ Nenhum fallback disponível.")
+        print(f"❌ Erro ao enviar áudio para Discord: {e}")
+
+def fallback_local(texto):
+    """
+    Gera a fala localmente usando o mecanismo pyttsx3 (offline).
+    """
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty("rate", 180)
+        engine.setProperty("volume", 1.0)
+        engine.say(texto)
+        engine.runAndWait()
+        print("✅ Fallback local executado com sucesso.")
+    except Exception as e:
+        print(f"⚠️ Erro no fallback local: {e}")

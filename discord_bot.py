@@ -1,50 +1,48 @@
-# discord_bot.py 📡 CharlieCore Tactical Discord Transmitter
+# discord_bot.py 📡 CharlieCore Tactical Discord Transmitter v3.1
 import os
 import requests
+from dotenv import load_dotenv
 
-WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+load_dotenv()
 
-def enviar_relatorio(texto):
+WEBHOOK_GENERAL = os.getenv("DISCORD_WEBHOOK_URL")  # legado/geral
+WEBHOOK_PREMIUM = os.getenv("DISCORD_WEBHOOK_PREMIUM", WEBHOOK_GENERAL)
+CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.75"))
+
+def enviar_relatorio(texto: str):
     """
-    Envia o relatório dividido em partes menores se exceder o limite do Discord (2000 caracteres).
+    Envia relatório longo para o Discord em blocos (formatação de code block).
     """
-    if not WEBHOOK_URL:
+    if not WEBHOOK_GENERAL:
         print("❌ Webhook do Discord não configurado.")
         return
 
-    partes = [texto[i:i+1900] for i in range(0, len(texto), 1900)]
-
-    for idx, parte in enumerate(partes):
-        payload = {
-            "content": f"```{parte}```"
-        }
-
+    partes = [texto[i:i+1900] for i in range(0, len(texto), 1900)]  # margem de segurança
+    for idx, parte in enumerate(partes, 1):
+        payload = {"content": f"```{parte}```"}
         try:
-            response = requests.post(WEBHOOK_URL, json=payload)
-            if response.status_code == 204:
-                print(f"✅ Parte {idx+1}/{len(partes)} enviada com sucesso ao Discord.")
-            else:
-                print(f"⚠️ Falha ao enviar parte {idx+1}. Código: {response.status_code}")
-        except Exception as e:
-            print(f"❌ Erro ao enviar parte {idx+1} para Discord: {e}")
+            r = requests.post(WEBHOOK_GENERAL, json=payload, timeout=10)
+            r.raise_for_status()
+            print(f"✅ Parte {idx}/{len(partes)} enviada.")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Erro ao enviar parte {idx}: {e}")
 
-def enviar_alerta_entrada(mensagem):
+def enviar_alerta_entrada(mensagem: str, confidence_score: float = 0.0):
     """
-    Envia uma mensagem de entrada tática separada no Discord (LONG/SHORT autorizada).
+    Envia alerta de entrada. Roteia para webhook premium se score >= threshold.
     """
-    if not WEBHOOK_URL:
+    if not WEBHOOK_GENERAL:
         print("❌ Webhook do Discord não configurado.")
         return
 
-    alerta_payload = {
-        "content": f"🚀 **ENTRADA AUTORIZADA**\n{mensagem}"
-    }
+    high_conf = confidence_score >= CONFIDENCE_THRESHOLD
+    webhook = WEBHOOK_PREMIUM if high_conf else WEBHOOK_GENERAL
+    prefixo = "🚀 **ENTRADA (HIGH CONF)**" if high_conf else "📣 **ENTRADA**"
 
+    payload = {"content": f"{prefixo} (conf: {confidence_score:.2f})\n{mensagem}"}
     try:
-        response = requests.post(WEBHOOK_URL, json=alerta_payload)
-        if response.status_code == 204:
-            print("✅ Entrada autorizada enviada ao Discord.")
-        else:
-            print(f"⚠️ Falha ao enviar entrada. Código: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Erro ao enviar entrada para Discord: {e}")
+        r = requests.post(webhook, json=payload, timeout=10)
+        r.raise_for_status()
+        print("✅ Alerta de entrada enviado.")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erro ao enviar alerta: {e}")
