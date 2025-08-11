@@ -6,3 +6,7 @@
 - Template de alerta e checklist de call.
 - Estrutura de log em CSV.
 - Script de dry-run para gerar 2 alertas exemplo.
+
+## v0.1.1 — TTS silenciado no servidor
+- Wrapper seguro respeita CHARLIE_TTS_MODE/ELEVENLABS_ENABLED.
+
