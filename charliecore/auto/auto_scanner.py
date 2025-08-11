@@ -133,8 +133,11 @@ def send_call(sig):
     timing= sig.get("timing", "A (pullback-rejeição)")
     cmd = [MAKE, sig["symbol"], setup, sig["side"], confs, timing]
     # Executa via bash
-    subprocess.run(cmd, check=True)
-
+        r = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        if r.stdout:
+            print(r.stdout.strip())
+        if r.stderr:
+            print(f"warn MAKE stderr: {r.stderr.strip()}")
 def main():
     # tenta importar os candidatos do seu scanner.py
     try:
