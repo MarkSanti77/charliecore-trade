@@ -120,7 +120,7 @@ def _trend_bias(closes, fast=5, slow=10):
     if a is None or b is None: return "flat"
     return "up" if a > b else ("down" if a < b else "flat")
 
-def _obv_dir_slope(closes, volumes, bars=4, tol=0.08):
+def _obv_dir_slope(closes, volumes, bars=4, tol=0.06):
     """Direção do OBV por inclinação com tolerância dinâmica."""
     o = obv(closes, volumes)
     seq = [x for x in o if x is not None][-bars:]

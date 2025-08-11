@@ -118,7 +118,7 @@ def should_send(sig, rules, state, now):
     if not sig.get("obv_ok"):
         macro_ok = sig.get("trend_ok", False)
         near_zone = float(sig.get("atr_proximity", 99)) <= 0.80
-        high_coup = float(sig.get("coupling", 0)) >= 0.85
+        high_coup = float(sig.get("coupling", 0)) >= 0.80
         if macro_ok and near_zone and high_coup:
             pass
         else:
