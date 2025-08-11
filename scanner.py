@@ -107,3 +107,27 @@ async def analisar_ativos(simbolo: Optional[str] = None, intervalo: str = "5m"):
             "contexto": ctx
         }
     return None
+
+# --- API p/ CharlieCore Auto ---
+def get_candidates():
+    """
+    Retorna lista de candidatos de trade.
+    Cada item é um dict com no mínimo:
+    symbol, side ('long'|'short'), confs, timing, coupling (0-1),
+    trend_ok (bool), obv_ok (bool), bollinger ('expanding'|'flat'|'contracting'),
+    atr_proximity (float; ex.: 0.42 == 0,42 x ATR5m), invalidations (bool)
+    """
+    candidates = []
+
+    # TODO: Preencher com sua lógica real de varredura.
+    # Exemplo (remova depois):
+    # candidates.append({
+    #   "symbol": "PEPEUSDT", "side": "short",
+    #   "confs": "15m/1h ↓, OBV↓, Bollinger abrindo, BTC acoplado 0.82",
+    #   "timing": "B (linha dos 50)",
+    #   "coupling": 0.82,
+    #   "trend_ok": True, "obv_ok": True, "bollinger": "expanding",
+    #   "atr_proximity": 0.40,
+    #   "invalidations": False
+    # })
+    return candidates
