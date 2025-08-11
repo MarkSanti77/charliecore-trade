@@ -7,6 +7,9 @@ assets:
     - SOLUSDT
     - ETHUSDT
     - BTCUSDT
+    - DOGEUSDT
+    - PEPEUSDT
+    - XRPUSDT
 
 setups:
   short_continuacao:
