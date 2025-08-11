@@ -125,19 +125,34 @@ def _trend_bias(closes, fast=5, slow=10):
     if a is None or b is None: return "flat"
     return "up" if a>b else ("down" if a<b else "flat")
 
-def _obv_dir(closes, volumes, bars=3):
+
+def _obv_dir(closes, volumes, bars=5, tol=0.25):
+    """
+    Direção do OBV por inclinação:
+    - Usa barras=5 (default)
+    - tol é um fator sobre o passo médio do OBV; se delta >= tol*step_médio => up, <= -tol*step_médio => down
+    """
     o = obv(closes, volumes)
-    last = [x for x in o if x is not None][-bars:]
-    if len(last)<bars: return "flat"
-    inc = all(last[i] <= last[i+1] for i in range(len(last)-1))
-    dec = all(last[i] >= last[i+1] for i in range(len(last)-1))
-    return "up" if inc and not dec else ("down" if dec and not inc else "flat")
+    seq = [x for x in o if x is not None][-bars:]
+    if len(seq) < bars:
+        return "flat"
+    delta = seq[-1] - seq[0]
+    # passo médio absoluto entre barras
+    steps = [abs(seq[i+1]-seq[i]) for i in range(len(seq)-1)]
+    step_avg = (sum(steps) / max(1, len(steps))) if steps else 0.0
+    # evita divisão por zero (OBV muito “parado”)
+    step_ref = max(step_avg, 1e-9)
+    if delta >=  tol * step_ref:
+        return "up"
+    if delta <= -tol * step_ref:
+        return "down"
+    return "flat"
 
 def _vol_expanding(closes, win=20):
     if len(closes) < win*3: return "flat"
     now = statistics.pstdev(closes[-win:])
     prev= statistics.pstdev(closes[-2*win:-win])
-    return "expanding" if (now > prev*1.05 and now>0) else ("contracting" if now < prev*0.95 else "flat")
+    return "expanding" if (now > prev*1.03 and now>0) else ("contracting" if now < prev*0.95 else "flat")
 
 def _atr_from_klines(ks, period=5):
     if len(ks) < period+1: return None
@@ -198,24 +213,16 @@ def get_candidates() -> List[Dict[str,Any]]:
             out.append({"symbol":sym,"side":"long",
                         "confs":f"1h/15m ↑, OBV↑, vol {vol}, BTC acoplado {coup:.2f}",
                         "timing":"A (pullback-rejeição)","coupling":coup,
-                        "trend_ok":True,"obv_ok":(od=='up'),"bollinger":vol,
+                        "trend_ok":True,"obv_ok": (od=='up') or (vol=='expanding' and prox<=0.7 and coup>=0.70),"bollinger":vol,
                         "atr_proximity":prox,"invalidations":False})
         if b15=="down" and b1h=="down":
             out.append({"symbol":sym,"side":"short",
                         "confs":f"1h/15m ↓, OBV↓, vol {vol}, BTC acoplado {coup:.2f}",
                         "timing":"B (linha dos 50)","coupling":coup,
-                        "trend_ok":True,"obv_ok":(od=='down'),"bollinger":vol,
+                        "trend_ok":True,"obv_ok": (od=='down') or (vol=='expanding' and prox<=0.7 and coup>=0.70),"bollinger":vol,
                         "atr_proximity":prox,"invalidations":False})
     return out
 
-"""
-    Retorna lista de candidatos de trade.
-    Cada item é um dict com no mínimo:
-    symbol, side ('long'|'short'), confs, timing, coupling (0-1),
-    trend_ok (bool), obv_ok (bool), bollinger ('expanding'|'flat'|'contracting'),
-    atr_proximity (float; ex.: 0.42 == 0,42 x ATR5m), invalidations (bool)
-    """
-    candidates = []
 
     # TODO: Preencher com sua lógica real de varredura.
     # Exemplo (remova depois):
@@ -228,4 +235,237 @@ def get_candidates() -> List[Dict[str,Any]]:
     #   "atr_proximity": 0.40,
     #   "invalidations": False
     # })
-    return candidates
+
+
+
+    assets = os.getenv("ASSETS", "BTCUSDT,ETHUSDT").split(",")
+    assets = [a.strip().upper() for a in assets if a.strip()]
+    limit  = int(os.getenv("SNAPSHOT_LIMIT", "500"))
+    out: List[Dict[str,Any]] = []
+
+    btc15 = get_klines("BTCUSDT", "15m", min(limit, 500)) or []
+    btc_cl = [k["close"] for k in btc15] if btc15 and isinstance(btc15[0], dict) else []
+
+    for sym in assets:
+        snap = get_market_snapshot(sym, intervals=["1h", "15m", "5m"], limit=limit)
+        if not all(snap.get(tf, {}).get("ok") for tf in ["1h", "15m", "5m"]):
+            continue
+
+        k15 = snap["15m"]["klines"]; k1h = snap["1h"]["klines"]; k5m = snap["5m"]["klines"]
+        c15 = [k["close"] for k in k15]; c1h = [k["close"] for k in k1h]; c5m = [k["close"] for k in k5m]
+        v15 = [k["volume"] for k in k15]
+
+        b15 = _trend_bias(c15, 5, 10); b1h = _trend_bias(c1h, 5, 10)
+        od  = _obv_dir(c15, v15, bars=3)
+        vol = _vol_expanding(c15, win=20)
+
+        atr5 = _atr_from_klines(k5m, period=5) or 1e-6
+        e10  = ema(c15, 10)[-1] or c15[-1]
+        prox = abs(c15[-1] - e10) / atr5
+
+        coup = _corr_abs(_returns(c15), _returns(btc_cl)) if sym != "BTCUSDT" and btc_cl else 1.0
+
+        if b15 == "up" and b1h == "up":
+            out.append({
+                "symbol": sym, "side": "long",
+                "confs": f"1h/15m ↑, OBV↑, vol {vol}, BTC acoplado {coup:.2f}",
+                "timing": "A (pullback-rejeição)", "coupling": coup,
+                "trend_ok": True, "obv_ok": (od == 'up'), "bollinger": vol,
+                "atr_proximity": prox, "invalidations": False
+            })
+        if b15 == "down" and b1h == "down":
+            out.append({
+                "symbol": sym, "side": "short",
+                "confs": f"1h/15m ↓, OBV↓, vol {vol}, BTC acoplado {coup:.2f}",
+                "timing": "B (linha dos 50)", "coupling": coup,
+                "trend_ok": True, "obv_ok": (od == 'down'), "bollinger": vol,
+                "atr_proximity": prox, "invalidations": False
+            })
+    return out
+
+
+
+    # ---- varredura ----
+    assets = os.getenv("ASSETS","BTCUSDT,ETHUSDT").split(",")
+    assets = [a.strip().upper() for a in assets if a.strip()]
+    limit  = int(os.getenv("SNAPSHOT_LIMIT","500"))
+    out: List[Dict[str,Any]] = []
+
+    # Pré-carrega BTC 15m p/ acoplamento
+    btc15 = get_klines("BTCUSDT","15m", min(limit,500)) or []
+    btc_cl = [k["close"] for k in btc15] if btc15 and isinstance(btc15[0],dict) else ([])
+
+    for sym in assets:
+        snap = get_market_snapshot(sym, intervals=["1h","15m","5m"], limit=limit)
+        if not all(snap.get(tf,{}).get("ok") for tf in ["1h","15m","5m"]):
+            continue
+
+        k15 = snap["15m"]["klines"]; k1h = snap["1h"]["klines"]; k5m = snap["5m"]["klines"]
+        c15 = [k["close"] for k in k15]; c1h = [k["close"] for k in k1h]; c5m = [k["close"] for k in k5m]
+        v15 = [k["volume"] for k in k15]
+
+        b15 = _trend_bias(c15,5,10)
+        b1h = _trend_bias(c1h,5,10)
+        od  = _obv_dir_slope(c15, v15, bars=5, tol=0.15)
+        vol = _vol_expanding(c15, win=20)
+
+        atr5 = _atr_from_klines(k5m, period=5) or 1e-6
+        e10  = ema(c15,10)[-1] or c15[-1]
+        prox = abs(c15[-1]-e10)/atr5
+
+        coup = _corr_abs(_returns(c15), _returns(btc_cl)) if (sym!="BTCUSDT" and btc_cl) else 1.0
+
+        # bypass controlado: se forte em (vol, proximidade, acoplamento), obv_ok pode ser flat
+        obv_ok_long  = (od=='up')   or (vol=='expanding' and prox<=0.7 and coup>=0.70)
+        obv_ok_short = (od=='down') or (vol=='expanding' and prox<=0.7 and coup>=0.70)
+
+        if b15=="up" and b1h=="up":
+            out.append({
+                "symbol": sym, "side": "long",
+                "confs": f"1h/15m ↑, OBV↑, vol {vol}, BTC acoplado {coup:.2f}",
+                "timing": "A (pullback-rejeição)",
+                "coupling": coup,
+                "trend_ok": True, "obv_ok": obv_ok_long, "bollinger": vol,
+                "atr_proximity": prox, "invalidations": False
+            })
+
+        if b15=="down" and b1h=="down":
+            out.append({
+                "symbol": sym, "side": "short",
+                "confs": f"1h/15m ↓, OBV↓, vol {vol}, BTC acoplado {coup:.2f}",
+                "timing": "B (linha dos 50)",
+                "coupling": coup,
+                "trend_ok": True, "obv_ok": obv_ok_short, "bollinger": vol,
+                "atr_proximity": prox, "invalidations": False
+            })
+
+    return out
+
+
+
+def get_candidates():
+    """Varre ativos e retorna lista de candidatos para o auto_scanner."""
+    import os, math, statistics
+    from typing import List, Dict, Any
+    from data import get_market_snapshot, get_klines, ema, obv
+
+    # ---- helpers ----
+    def _ema_pair(closes, fast=5, slow=10):
+        efast = ema(closes, fast); eslow = ema(closes, slow)
+        return efast, eslow
+
+    def _trend_bias(closes, fast=5, slow=10):
+        efast, eslow = _ema_pair(closes, fast, slow)
+        a = efast[-1]; b = eslow[-1]
+        if a is None or b is None: return "flat"
+        return "up" if a > b else ("down" if a < b else "flat")
+
+    def _obv_dir_slope(closes, volumes, bars=5, tol=0.15):
+        """Direção do OBV por inclinação com tolerância dinâmica."""
+        o = obv(closes, volumes)
+        seq = [x for x in o if x is not None][-bars:]
+        if len(seq) < bars:
+            return "flat"
+        delta = seq[-1] - seq[0]
+        steps = [abs(seq[i+1]-seq[i]) for i in range(len(seq)-1)]
+        step_avg = (sum(steps)/max(1,len(steps))) if steps else 0.0
+        step_ref = max(step_avg, 1e-9)
+        if delta >=  tol * step_ref: return "up"
+        if delta <= -tol * step_ref: return "down"
+        return "flat"
+
+    def _vol_expanding(closes, win=20):
+        if len(closes) < win*3: return "flat"
+        now = statistics.pstdev(closes[-win:])
+        prev= statistics.pstdev(closes[-2*win:-win])
+        return "expanding" if (now > prev*1.03 and now>0) else ("contracting" if now < prev*0.95 else "flat")
+
+    def _atr_from_klines(ks, period=5):
+        if len(ks) < period+1: return None
+        trs=[]
+        for i in range(1,len(ks)):
+            h=ks[i]["high"]; l=ks[i]["low"]; cprev=ks[i-1]["close"]
+            trs.append(max(h-l, abs(h-cprev), abs(l-cprev)))
+        if len(trs)<period: return None
+        return sum(trs[-period:])/period
+
+    def _corr_abs(a, b):
+        n = min(len(a), len(b))
+        if n<10: return 0.0
+        a=a[-n:]; b=b[-n:]
+        ma=sum(a)/n; mb=sum(b)/n
+        va=sum((x-ma)**2 for x in a); vb=sum((y-mb)**2 for y in b)
+        if va==0 or vb==0: return 0.0
+        cov=sum((a[i]-ma)*(b[i]-mb) for i in range(n))
+        return abs(cov / math.sqrt(va*vb))
+
+    def _returns(closes):
+        out=[]
+        for i in range(1,len(closes)):
+            out.append(0.0 if closes[i-1]==0 else (closes[i]/closes[i-1]-1.0))
+        return out
+
+    # ---- varredura ----
+    assets = os.getenv("ASSETS","BTCUSDT,ETHUSDT").split(",")
+    assets = [a.strip().upper() for a in assets if a.strip()]
+    limit  = int(os.getenv("SNAPSHOT_LIMIT","500"))
+    out: List[Dict[str,Any]] = []
+
+    # Pré-carrega BTC 15m p/ acoplamento
+    btc15 = get_klines("BTCUSDT","15m", min(limit,500)) or []
+    btc_cl = [k["close"] for k in btc15] if btc15 and isinstance(btc15[0],dict) else []
+
+    for sym in assets:
+        snap = get_market_snapshot(sym, intervals=["1h","15m","5m"], limit=limit)
+        if not all(snap.get(tf,{}).get("ok") for tf in ["1h","15m","5m"]):
+            continue
+
+        k15 = snap["15m"]["klines"]; k1h = snap["1h"]["klines"]; k5m = snap["5m"]["klines"]
+        c15 = [k["close"] for k in k15]; c1h = [k["close"] for k in k1h]; c5m = [k["close"] for k in k5m]
+        v15 = [k["volume"] for k in k15]
+
+        b15 = _trend_bias(c15,5,10)
+        b1h = _trend_bias(c1h,5,10)
+        od  = _obv_dir_slope(c15, v15, bars=5, tol=0.15)
+        vol = _vol_expanding(c15, win=20)
+
+        atr5 = _atr_from_klines(k5m, period=5) or 1e-6
+        e10  = ema(c15,10)[-1] or c15[-1]
+        prox = abs(c15[-1]-e10)/atr5
+
+        coup = _corr_abs(_returns(c15), _returns(btc_cl)) if (sym!="BTCUSDT" and btc_cl) else 1.0
+
+        # bypass controlado: se forte em (vol, proximidade, acoplamento), obv_ok pode ser flat
+        obv_ok_long  = (od=='up')   or (vol=='expanding' and prox<=0.7 and coup>=0.70)
+        obv_ok_short = (od=='down') or (vol=='expanding' and prox<=0.7 and coup>=0.70)
+
+        if b15=="up" and b1h=="up":
+            out.append({
+                "symbol": sym,
+                "side": "long",
+                "confs": f"1h/15m ↑, OBV↑, vol {vol}, BTC acoplado {coup:.2f}",
+                "timing": "A (pullback-rejeição)",
+                "coupling": coup,
+                "trend_ok": True,
+                "obv_ok": obv_ok_long,
+                "bollinger": vol,
+                "atr_proximity": prox,
+                "invalidations": False,
+            })
+
+        if b15=="down" and b1h=="down":
+            out.append({
+                "symbol": sym,
+                "side": "short",
+                "confs": f"1h/15m ↓, OBV↓, vol {vol}, BTC acoplado {coup:.2f}",
+                "timing": "B (linha dos 50)",
+                "coupling": coup,
+                "trend_ok": True,
+                "obv_ok": obv_ok_short,
+                "bollinger": vol,
+                "atr_proximity": prox,
+                "invalidations": False,
+            })
+
+    return out
+
