@@ -1,4 +1,4 @@
-from charlie_voice import falar
+from charlie_voice_safe import falar
 import sys
 
 mensagem_tipo = sys.argv[1] if len(sys.argv) > 1 else "neutra"
