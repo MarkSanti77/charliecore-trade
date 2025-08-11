@@ -85,24 +85,31 @@ def should_send(sig, rules, state, now):
     atr_max     = stp["volatility"]["atr_proximity_max"]
 
     # Filtros de qualidade
-    if not sig.get("trend_ok"): return False, "trend_not_ok"
+    if not sig.get("trend_ok"):
+        return False, "trend_not_ok"
+
     if not sig.get("obv_ok"):
-    macro_ok = sig.get("trend_ok", False)
-    near_zone = float(sig.get("atr_proximity", 99)) <= 0.80
-    high_coup = float(sig.get("coupling",0)) >= 0.85
-    if macro_ok and near_zone and high_coup:
-        pass
-    else:
-        return False, "obv_not_ok"
-    atr_max_yaml = rules["setups"]["long_continuacao" if sig["side"]=="long" else "short_continuacao"]["volatility"]["atr_proximity_max"]
-if sig.get("bollinger") != "expanding":
-    if float(sig.get("atr_proximity", 99)) <= float(atr_max_yaml) and float(sig.get("coupling",0)) >= 0.80:
-        pass
-    else:
-        return False, "bollinger_not_expanding"
-    if sig.get("invalidations", False):     return False, "invalidated"
-    if sig.get("coupling", 0) < coupling_th: return False, "low_coupling"
-    if sig.get("atr_proximity", 1) > atr_max: return False, "too_far_from_zone"
+        macro_ok = sig.get("trend_ok", False)
+        near_zone = float(sig.get("atr_proximity", 99)) <= 0.80
+        high_coup = float(sig.get("coupling", 0)) >= 0.85
+        if macro_ok and near_zone and high_coup:
+            pass
+        else:
+            return False, "obv_not_ok"
+
+    atr_max_yaml = stp["volatility"]["atr_proximity_max"]
+    if sig.get("bollinger") != "expanding":
+        if float(sig.get("atr_proximity", 99)) <= float(atr_max_yaml) and float(sig.get("coupling",0)) >= 0.80:
+            pass
+        else:
+            return False, "bollinger_not_expanding"
+
+    if sig.get("invalidations", False):
+        return False, "invalidated"
+    if sig.get("coupling", 0) < coupling_th:
+        return False, "low_coupling"
+    if sig.get("atr_proximity", 1) > atr_max:
+        return False, "too_far_from_zone"
 
     # Anti-spam: cooldown por par/direção
     key = sig_key(sig)
