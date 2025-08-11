@@ -5,14 +5,39 @@ load_dotenv(override=True)
 import sys, json, time, subprocess, yaml
 import datetime as dt
 
-#!/usr/bin/env python3
-import sys, json, time, subprocess, yaml, datetime as dt
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATE = os.path.join(ROOT, ".charlie_state.json")
 
-BASE = os.path.dirname(os.path.dirname(__file__))     # .../charliecore
-ROOT = os.path.dirname(BASE)                          # repo root
-CFG  = os.path.join(BASE, "config", "charliecore_rules.yaml")
+PRE_ALERTS = os.getenv("PRE_ALERTS","true").lower() not in ("0","false","no")
+PRE_WINDOW = int(os.getenv("PRE_ALERT_WINDOW_SEC","900"))
+PRE_MIN    = float(os.getenv("PRE_ALERT_MIN_SCORE","0.42"))
+PRE_IMP    = float(os.getenv("PRE_ALERT_IMPROVE_DELTA","0.02"))
+
+def almost_ok(sig, rules):
+    """Score parcial 0..1 + lista de faltas."""
+    missing=[]; score=0; total=6
+    if sig.get("trend_ok"): score+=1
+    else: missing.append("trend")
+    if sig.get("obv_ok"): score+=1
+    else: missing.append("obv")
+    if sig.get("bollinger")=="expanding": score+=1
+    else: missing.append("bollinger")
+    if not sig.get("invalidations", False): score+=1
+    else: missing.append("invalidation")
+    setup = "long_continuacao" if sig.get("side")=="long" else "short_continuacao"
+    stp   = rules.get("setups",{}).get(setup,{})
+    coup_th = ((stp.get("btc_coupling") or {}).get("threshold") or 0.0)
+    atr_max = ((stp.get("volatility")  or {}).get("atr_proximity_max") or 1e9)
+    if float(sig.get("coupling",0)) >= float(coup_th): score+=1
+    else: missing.append("coupling")
+    if float(sig.get("atr_proximity",99)) <= float(atr_max): score+=1
+    else: missing.append("atr")
+    return (score/total >= PRE_MIN, missing, score/total)
+
+
+
 STATE= os.path.join(ROOT, ".charlie_state.json")
-MAKE = os.path.join(BASE, "core", "make_call.sh")
+MAKE = os.path.join(ROOT, "core", "make_call.sh")
 
 def load_yaml(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -123,30 +148,3 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-PRE_ALERTS = os.getenv("PRE_ALERTS","true").lower() not in ("0","false","no")
-PRE_WINDOW = int(os.getenv("PRE_ALERT_WINDOW_SEC","900"))
-PRE_MIN    = float(os.getenv("PRE_ALERT_MIN_SCORE","0.42"))
-PRE_IMP    = float(os.getenv("PRE_ALERT_IMPROVE_DELTA","0.02"))
-
-
-def almost_ok(sig, rules):
-    """Score parcial 0..1 + lista de faltas."""
-    missing=[]; score=0; total=6
-    if sig.get("trend_ok"): score+=1
-    else: missing.append("trend")
-    if sig.get("obv_ok"): score+=1
-    else: missing.append("obv")
-    if sig.get("bollinger")=="expanding": score+=1
-    else: missing.append("bollinger")
-    if not sig.get("invalidations", False): score+=1
-    else: missing.append("invalidation")
-    # thresholds do YAML
-    setup = "long_continuacao" if sig.get("side")=="long" else "short_continuacao"
-    stp   = rules.get("setups",{}).get(setup,{})
-    coup_th = ((stp.get("btc_coupling") or {}).get("threshold") or 0.0)
-    atr_max = ((stp.get("volatility")  or {}).get("atr_proximity_max") or 1e9)
-    if float(sig.get("coupling",0)) >= float(coup_th): score+=1
-    else: missing.append("coupling")
-    if float(sig.get("atr_proximity",99)) <= float(atr_max): score+=1
-    else: missing.append("atr")
-    return (score/total >= PRE_MIN, missing, score/total)
