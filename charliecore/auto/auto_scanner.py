@@ -86,8 +86,20 @@ def should_send(sig, rules, state, now):
 
     # Filtros de qualidade
     if not sig.get("trend_ok"): return False, "trend_not_ok"
-    if not sig.get("obv_ok"):   return False, "obv_not_ok"
-    if sig.get("bollinger") != "expanding": return False, "bollinger_not_expanding"
+    if not sig.get("obv_ok"):
+    macro_ok = sig.get("trend_ok", False)
+    near_zone = float(sig.get("atr_proximity", 99)) <= 0.80
+    high_coup = float(sig.get("coupling",0)) >= 0.85
+    if macro_ok and near_zone and high_coup:
+        pass
+    else:
+        return False, "obv_not_ok"
+    atr_max_yaml = rules["setups"]["long_continuacao" if sig["side"]=="long" else "short_continuacao"]["volatility"]["atr_proximity_max"]
+if sig.get("bollinger") != "expanding":
+    if float(sig.get("atr_proximity", 99)) <= float(atr_max_yaml) and float(sig.get("coupling",0)) >= 0.80:
+        pass
+    else:
+        return False, "bollinger_not_expanding"
     if sig.get("invalidations", False):     return False, "invalidated"
     if sig.get("coupling", 0) < coupling_th: return False, "low_coupling"
     if sig.get("atr_proximity", 1) > atr_max: return False, "too_far_from_zone"
@@ -138,6 +150,12 @@ def main():
 
     sent = 0
     for sig in candidates:
+        print(f"dbg {sig['symbol']} {sig['side']} "
+              f"coupling={sig.get('coupling'):.2f} "
+              f"atr={sig.get('atr_proximity'):.2f} "
+              f"boll={sig.get('bollinger')} "
+              f"trend={sig.get('trend_ok')} "
+              f"obv={sig.get('obv_ok')}")
         ok, why = should_send(sig, rules, state, now)
         print(f"cand {sig.get('symbol')} {sig.get('side')} -> {why}")
         if not ok:
