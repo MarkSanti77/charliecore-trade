@@ -26,7 +26,7 @@ setups:
     volatility:
       bollinger:
         state: "expanding"   # expanding|flat|contracting
-      atr_proximity_max: 0.9 # <= 0.5 x ATR(5m) da zona-chave
+      atr_proximity_max: 1.10 # <= 0.5 x ATR(5m) da zona-chave
     btc_coupling:
       threshold: 0.45
       lookback_candles: 5
@@ -72,7 +72,7 @@ setups:
     volatility:
       bollinger:
         state: "expanding"
-      atr_proximity_max: 0.9
+      atr_proximity_max: 1.10
     btc_coupling:
       threshold: 0.45
       lookback_candles: 5
